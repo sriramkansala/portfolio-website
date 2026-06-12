@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Mara Vance — Product Designer</title>
+<meta name="description" content="Product designer shaping clear, considered software for people who notice the difference." />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@400;500;600&family=Inter+Display:wght@700;800&family=EB+Garamond:ital,wght@0,400;1,400&family=Just+Another+Hand&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+<!-- ====== FLOATING NAV ====== -->
+<header class="nav is-hero" id="nav">
+  <div class="nav__pill">
+    <a href="#top" class="nav__logo" aria-label="Home">
+      <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
+        <circle cx="14" cy="14" r="14" fill="#1a1a2e"/>
+        <path d="M14 6c0 0-5 4-5 9a5 5 0 0010 0c0-5-5-9-5-9z" fill="white" opacity="0.9"/>
+        <circle cx="14" cy="15" r="2.5" fill="white" opacity="0.6"/>
+      </svg>
+    </a>
+    <nav aria-label="Primary">
+      <a href="#work">Work</a>
+      <a href="#approach">Approach</a>
+      <a href="#services">Services</a>
+      <a href="#contact">Updates</a>
+    </nav>
+  </div>
+  <a href="#contact" class="nav__cta">Get in touch</a>
+</header>
+
+<!-- mobile overlay -->
+<div class="menu" id="menu" aria-hidden="true">
+  <a href="#work" onclick="closeMenu()">Work</a>
+  <a href="#approach" onclick="closeMenu()">Approach</a>
+  <a href="#services" onclick="closeMenu()">Services</a>
+  <a href="#contact" onclick="closeMenu()">Get in touch</a>
+</div>
+
+<main id="top">
+
+<!-- ====== HERO ====== -->
+<section class="hero">
+  <div class="hero__content">
+<h1 class="hero__title">Hi, I'm Sriram</h1>
+    <p class="hero__sub">I build scalable design systems and component libraries, refine workflows, and craft motion with Rive — specialising in enterprise SaaS.</p>
+    <a href="#contact" class="btn btn--white">Get in touch</a>
+    <a href="#work" class="hero__scroll" aria-label="Scroll down">
+      <svg width="20" height="24" viewBox="0 0 20 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <path d="M4 4L10 10L16 4" stroke="rgba(255,255,255,0.6)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M4 11L10 17L16 11" stroke="rgba(255,255,255,0.4)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </a>
+  </div>
+</section>
+
+<!-- ====== MANIFESTO LETTER ====== -->
+<section class="letter" id="approach">
+  <div class="letter__bg" aria-hidden="true"></div>
+  <div class="letter__card">
+    <p class="letter__heading">We are nerds.</p>
+    <div class="letter__body">
+      <p>I design for clarity, not engagement. For the moment a person understands exactly what to do next without being asked. For software that trusts the people who use it.</p>
+      <p>I believe good design is invisible. The best interface is the one nobody notices — because it just works, every time, the way they expected. That's the bar I set for everything I ship.</p>
+      <p>I care about the details that don't show up in a sprint review: the wording of an error message, the weight of a button under a thumb, the silence of a loading state that doesn't panic. Done well, these add up to something that simply feels right.</p>
+      <p>I'm small on purpose — no growth targets, no trend chasing. One designer who has thought deeply about every part of the work.</p>
+    </div>
+    <div class="letter__sig">
+      <span class="letter__handwriting">Mara</span>
+      <span class="letter__name">Mara Vance</span>
+    </div>
+  </div>
+
+</section>
+
+
+<!-- ====== NEWSLETTER ====== -->
+<section class="newsletter">
+  <div class="newsletter__card">
+    <p class="section-label">Join 200+ designers</p>
+    <h2>No spam, just signal.</h2>
+    <p>A few emails a year when I ship something worth sharing — new case studies, tools, or writing.</p>
+    <form class="newsletter__form" onsubmit="return false">
+      <input type="email" placeholder="name@email.com" autocomplete="email" />
+      <button type="submit" class="btn btn--blue">Sign up</button>
+    </form>
+    <p class="newsletter__legal">By signing up you agree to my <a href="#">Privacy Policy</a>.</p>
+  </div>
+</section>
+
+<!-- ====== CTA ====== -->
+<section class="cta" id="contact">
+  <h2 class="cta__title serif">Think we vibe?</h2>
+  <p>I take on a small number of projects each year. If you're building something that matters, I'd love to hear about it.</p>
+  <a href="mailto:hello@maravance.design" class="btn btn--blue btn--lg">Say hi</a>
+  <div class="cta__socials">
+    <a href="#">Twitter / X</a>
+    <a href="#">LinkedIn</a>
+    <a href="#">Dribbble</a>
+    <a href="#">Read.cv</a>
+  </div>
+</section>
+
+</main>
+
+<!-- ====== FOOTER ====== -->
+<footer class="footer">
+  <div class="footer__inner">
+    <span class="footer__copy">© <span id="yr">2026</span> Mara Vance. All rights reserved.</span>
+    <nav class="footer__links">
+      <a href="#work">Work</a>
+      <a href="#services">Services</a>
+      <a href="#contact">Contact</a>
+    </nav>
+    <span class="footer__made">Designed &amp; built from scratch</span>
+  </div>
+</footer>
+
+<script src="main.js"></script>
+</body>
+</html>

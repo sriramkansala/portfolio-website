@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Card Expand — vogel.haus scroll mechanic, isolated</title>
+<!--
+  ============================================================================
+  PIXEL-ACCURATE CLONE of the vogel.haus hero → section-2 card entrance.
+  Values are MEASURED from the live site (headless-Chromium sweep + decompiled
+  Framer config, 2026-06-12). Full spec: ../CARD-EXPAND-SPEC.md
+
+  GROUND TRUTH (differs from common guesses about this effect):
+  - There is NO pin, NO sticky, NO tall driver section. The card rides the page.
+  - Progress is element-entry based (Motion offset ["start end","end end"]):
+      p = 0  when the card's (untransformed) top crosses the viewport bottom
+      p = 1  when the card's bottom reaches the viewport bottom
+    → the scrub distance equals the card's own layout height.
+  - Interpolation is LINEAR and the scrub is DIRECT (no easing curve, no
+    spring, no catch-up lag — verified by scroll-jump testing).
+  - Card:           y 50px → 0,  scale 0.70 → 1.00,  rotate 7° → 0°
+  - Left polaroid:  x 30 → 0, y 50 → 0, scale 0.9 → 1, rotate −7° → −4°
+  - Right polaroid: x −30 → 0, y 50 → 0, scale 0.9 → 1, rotate 14° → 7°
+  - border-radius is CONSTANT (38px superellipse; 25.5px fallback). The radius
+    only looks like it grows because it is multiplied by the scale.
+  - Mobile (≤809.98px) ships the card STATIC — no scroll animation at all.
+  ============================================================================
+-->
+<style>
+  :root {
+    /* vogel: radius = 38px × (corner-shape supported ? 1 : 0.671) */
+    --corner-factor: 0.671;
+    --paper: rgb(255, 253, 250);
+    --ink: rgb(33, 33, 33);
+  }
+  @supports (corner-shape: superellipse(1.7)) {
+    :root { --corner-factor: 1; }
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body {
+    background: var(--paper);
+    color: var(--ink);
+    font-family: ui-sans-serif, system-ui, -apple-system, "Helvetica Neue", sans-serif;
+  }
+
+  /* ---- placeholder hero above (scroll headroom into the effect) ---- */
+  .ph-hero {
+    height: 110vh;
+    display: grid;
+    place-items: center;
+    background: linear-gradient(180deg, #0e0b3d 0%, #5498ff 45%, #ff9c5e 84%, #fffdfa 100%);
+    color: rgba(255, 255, 255, 0.92);
+    text-align: center;
+  }
+  .ph-hero p { font-size: 14px; letter-spacing: 0.12em; text-transform: uppercase; opacity: 0.8; }
+
+  /* ---- the focus: card stage ---- */
+  .stage {
+    display: flex;
+    justify-content: center;
+    padding: 4vh 24px 28vh;
+    background: var(--paper);
+    overflow: visible;
+  }
+  /* Untransformed track = trigger geometry. Never animated, so ScrollTrigger
+     measurements are immune to the card's own transform. */
+  .track {
+    position: relative;
+    width: min(672px, 92vw);              /* vogel: max-width 672px */
+    aspect-ratio: 672 / 1011.7;           /* vogel card layout box: 672 × 1011.7 */
+  }
+  .card {
+    position: absolute;
+    inset: 0;
+    background: var(--paper);
+    corner-shape: superellipse(1.7);
+    border-radius: calc(38px * var(--corner-factor));
+    /* vogel's exact 5-layer shadow stack, verbatim */
+    box-shadow:
+      0.414945px 0.652056px 2.318666px -0.3px rgba(0, 0, 0, 0.03),
+      1.130005px 1.775723px 6.314344px -0.6px rgba(0, 0, 0, 0.04),
+      2.481083px 3.898845px 13.864013px -0.9px rgba(0, 0, 0, 0.04),
+      5.507438px 8.654545px 30.774944px -1.2px rgba(0, 0, 0, 0.05),
+      14px 22px 78.230429px -1.5px rgba(0, 0, 0, 0.08);
+    will-change: transform;
+    /* initial state = p0, so there is no flash before JS runs */
+    transform: translate3d(0, 50px, 0) scale(0.7) rotate(7deg);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 24px;
+    padding: 48px 48px 148px;             /* vogel: padding 48px 48px 148px */
+  }
+  /* 0.5px hairline border that follows the radius (vogel's data-border ::after) */
+  .card::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border: 0.5px solid rgba(33, 33, 33, 0.12);
+    border-radius: inherit;
+    corner-shape: inherit;
+    pointer-events: none;
+  }
+  /* placeholder content — swap freely; the mechanic doesn't care */
+  .card .eyebrow {
+    margin-top: 24px;
+    font-size: 11px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: rgba(33, 33, 33, 0.35);
+  }
+  .skeleton { width: 100%; max-width: 440px; display: grid; gap: 14px; margin-top: 12px; }
+  .skeleton i {
+    display: block;
+    height: 13px;
+    border-radius: 7px;
+    background: rgba(33, 33, 33, 0.07);
+  }
+  .skeleton i:nth-child(3n)   { width: 92%; }
+  .skeleton i:nth-child(3n+1) { width: 100%; }
+  .skeleton i:nth-child(3n+2) { width: 84%; }
+  .skeleton i.gap { background: none; height: 10px; }
+
+  /* ---- co-animated polaroids (vogel: absolute siblings of the card) ---- */
+  .polaroid {
+    position: absolute;
+    width: 205px;                          /* vogel: 205 × 264 */
+    height: 264px;
+    margin-left: -102.5px;                 /* center on its anchor point */
+    margin-top: -132px;                    /* (instead of translate(-50%,-50%), */
+    background: #fff;                      /*  so transform stays animation-only) */
+    border-radius: 2px;
+    padding: 16px;
+    box-shadow:
+      0 0.602187px 0.602187px -1.25px rgba(0, 0, 0, 0.35),
+      0 2.288533px 2.288533px -2.5px rgba(0, 0, 0, 0.31),
+      0 10px 10px -3.75px rgba(0, 0, 0, 0.12);
+    will-change: transform;
+    z-index: 1;
+  }
+  .polaroid .photo { width: 100%; height: 200px; }
+  .polaroid--left {
+    top: 61%; left: -11%;                  /* vogel: top 61%, left −11% */
+    transform: translate3d(30px, 50px, 0) scale(0.9) rotate(-7deg);
+  }
+  .polaroid--left .photo { background: linear-gradient(145deg, #b8c8e8, #8ca8d0); }
+  .polaroid--right {
+    top: 73%; left: 107%;                  /* vogel: top 73%, left 107% */
+    transform: translate3d(-30px, 50px, 0) scale(0.9) rotate(14deg);
+  }
+  .polaroid--right .photo { background: linear-gradient(145deg, #c4b8e8, #9080d4); }
+  .polaroid figcaption {
+    margin-top: 12px;
+    text-align: center;
+    font-size: 13px;
+    color: rgba(33, 33, 33, 0.4);
+  }
+
+  /* ---- placeholder section below (lets the card scroll away naturally) ---- */
+  .ph-after {
+    height: 120vh;
+    display: grid;
+    place-items: center;
+    background: #fff;
+    color: rgba(33, 33, 33, 0.4);
+    font-size: 14px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+  }
+
+  /* ---- mobile + reduced motion: static identity, exactly like vogel ---- */
+  @media (max-width: 809.98px), (prefers-reduced-motion: reduce) {
+    .card, .polaroid--left, .polaroid--right { transform: none !important; will-change: auto; }
+    .polaroid--left  { transform: rotate(-4deg) !important; }
+    .polaroid--right { transform: rotate(7deg) !important; }
+  }
+  @media (max-width: 809.98px) {
+    .polaroid--left  { left: 26%; top: auto; bottom: -196px; }
+    .polaroid--right { left: 74%; top: auto; bottom: -192px; }
+    .stage { padding-bottom: 320px; }
+  }
+</style>
+</head>
+<body>
+
+<section class="ph-hero"><p>Placeholder hero — scroll ↓</p></section>
+
+<section class="stage">
+  <div class="track" id="track">
+    <div class="card" id="card">
+      <span class="eyebrow">Placeholder card</span>
+      <div class="skeleton" aria-hidden="true">
+        <i></i><i></i><i></i><i class="gap"></i>
+        <i></i><i></i><i></i><i class="gap"></i>
+        <i></i><i></i>
+      </div>
+    </div>
+    <figure class="polaroid polaroid--left" id="polLeft">
+      <div class="photo"></div><figcaption>placeholder</figcaption>
+    </figure>
+    <figure class="polaroid polaroid--right" id="polRight">
+      <div class="photo"></div><figcaption>placeholder</figcaption>
+    </figure>
+  </div>
+</section>
+
+<section class="ph-after"><p>Placeholder section below</p></section>
+
+<script src="https://cdn.jsdelivr.net/npm/gsap@3.13.0/dist/gsap.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/gsap@3.13.0/dist/ScrollTrigger.min.js"></script>
+<script>
+(() => {
+  const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const desktop = matchMedia('(min-width: 810px)');
+  if (reduced) return; // CSS already pinned everything to its final state
+
+  const card = document.getElementById('card');
+  const polLeft = document.getElementById('polLeft');
+  const polRight = document.getElementById('polRight');
+
+  // Measured channels. Linear in p; scrub is direct (no smoothing) — the live
+  // site reaches the scrubbed value within one frame of a scroll jump.
+  // (The reference spec suggested scrub:1 + an ease; the real site has neither.)
+  const FROM = {
+    card:     { x: 0,   y: 50, scale: 0.7, rot: 7 },
+    polLeft:  { x: 30,  y: 50, scale: 0.9, rot: -7 },   // → rotate −4° at rest
+    polRight: { x: -30, y: 50, scale: 0.9, rot: 14 },   // → rotate 7° at rest
+  };
+  const TO = {
+    card:     { x: 0, y: 0, scale: 1, rot: 0 },
+    polLeft:  { x: 0, y: 0, scale: 1, rot: -4 },
+    polRight: { x: 0, y: 0, scale: 1, rot: 7 },
+  };
+
+  if (window.gsap && window.ScrollTrigger && desktop.matches) {
+    /* ---- GSAP ScrollTrigger driver ----
+       trigger is the untransformed .track, so start/end geometry is exact.
+       start "top bottom" / end "bottom bottom" ≡ Motion ["start end","end end"]. */
+    gsap.registerPlugin(ScrollTrigger);
+    const st = { trigger: '#track', start: 'top bottom', end: 'bottom bottom', scrub: true };
+    const tween = (el, f, t) => gsap.fromTo(el,
+      { x: f.x, y: f.y, scale: f.scale, rotation: f.rot },
+      { x: t.x, y: t.y, scale: t.scale, rotation: t.rot, ease: 'none', scrollTrigger: { ...st } });
+    tween(card, FROM.card, TO.card);
+    tween(polLeft, FROM.polLeft, TO.polLeft);
+    tween(polRight, FROM.polRight, TO.polRight);
+  } else if (desktop.matches) {
+    /* ---- dependency-free fallback (identical math, for offline use) ---- */
+    const track = document.getElementById('track');
+    let top = 0, h = 1;
+    const measure = () => {
+      let t = 0;
+      for (let el = track; el; el = el.offsetParent) t += el.offsetTop;
+      top = t; h = track.offsetHeight;
+    };
+    const lerp = (a, b, p) => a + (b - a) * p;
+    const set = (el, f, t, p) => {
+      el.style.transform =
+        `translate3d(${lerp(f.x, t.x, p)}px, ${lerp(f.y, t.y, p)}px, 0) ` +
+        `scale(${lerp(f.scale, t.scale, p)}) rotate(${lerp(f.rot, t.rot, p)}deg)`;
+    };
+    const apply = () => {
+      const p = Math.min(1, Math.max(0, (scrollY + innerHeight - top) / h));
+      set(card, FROM.card, TO.card, p);
+      set(polLeft, FROM.polLeft, TO.polLeft, p);
+      set(polRight, FROM.polRight, TO.polRight, p);
+    };
+    let raf = false;
+    const onScroll = () => {
+      if (!raf) { raf = true; requestAnimationFrame(() => { apply(); raf = false; }); }
+    };
+    measure(); apply();
+    addEventListener('scroll', onScroll, { passive: true });
+    addEventListener('resize', () => { measure(); apply(); }, { passive: true });
+  }
+})();
+</script>
+</body>
+</html>
